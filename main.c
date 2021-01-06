@@ -1,43 +1,74 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
-void cd(char PATH[], char COMMAND[]);
-void checkAndDecide(char PATH[], char COMMAND[]);
-void setDefaultPath(char PATH[]);
+void cd(char* path, const char* command);
+void checkAndDecide(char* path, char* command);
+void setDefaultPath(char* path);
+void clearPath(char* path);
+void clearCommand(char* command);
+int ifCommandExit(const char* command);
 
 
 int main() {
-    char USER[] = "Goora993";
-    char PATH[10000];
+    char* user = malloc(10000 * sizeof(char));
+    char* path = malloc(10000 * sizeof(char));
     char SIGN = '$';
-    char COMMAND[1000000];
+    char* command = malloc(10000 * sizeof(char));
 
-    setDefaultPath(PATH);
-    printf("%s [%s]%c ", USER, PATH, SIGN);
-    gets(COMMAND);
-    checkAndDecide(PATH, COMMAND);
-    printf("%s [%s]%c ", USER, PATH, SIGN);
+    user = "Goora";
+    setDefaultPath(path);
 
+    while(ifCommandExit(command)==0){
+        printf("%s [%s]%c ", user, path, SIGN);
+        gets(command);
+        checkAndDecide(path, command);
+    }
+
+    free(user); //tutaj jest rzucane: Process finished with exit code -1073740940 (0xC0000374)
+    free(path);
+    free(command);
 
     return 0;
 }
 
-void checkAndDecide(char PATH[], char COMMAND[]){
-    if(COMMAND[0]=='c' && COMMAND[1]=='d'){
-        cd(PATH, COMMAND);
+void checkAndDecide(char* path, char* command){
+    if(command[0]=='c' && command[1]=='d'){
+        cd(path, command);
     }
 }
 
-void cd(char PATH[], char COMMAND[]){
-    for (int i = 0; i < 100000; i++) {
-        PATH[i] = COMMAND[i+3];
+void cd(char* path, const char* command){
+    for (int i = 0; i < 10000; i++) {
+        path[i] = command[i+3];
     }
 }
 
-void setDefaultPath(char PATH[]){
-    if (getcwd(PATH, 10000) != NULL) {
-
+void setDefaultPath(char* path){
+    if (getcwd(path, 10000) != NULL) {
+        //ok
     } else {
         perror("getcwd() error");
     }
 }
+
+int ifCommandExit(const char* command){
+    if(command[0]=='e' && command[1]=='x' && command[2]=='i' && command[3]=='t'){
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+//void clearPath(char* path){
+//    for (int i = 0; i < 10000; i++) {
+//        path[i] = (char) 0;
+//    }
+//}
+//
+//void clearCommand(char* command){
+//    for (int i = 0; i < 10000; i++) {
+//        command[i] = (char) 0;
+//    }
+//}
+
