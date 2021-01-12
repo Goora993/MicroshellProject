@@ -1,87 +1,118 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <dirent.h>
 
-void cd(char* path, char* actualPath, const char* command);
-void checkAndDecide(char* path, char* actualPath, char* command);
-void setDefaultPath(char* path);
-int ifCommandExit(const char* command);
-void ls(const char * path);
-void pwd(char * path);
+void cd(char *path, char *actualPath, char* pathTmp, const char *command);
+
+void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command);
+
+void setDefaultPath(char *path);
+
+int ifCommandExit(const char *command);
+
+int checkCommand(const char *command, const char *program);
+
+void ls(const char *actualPath);
+
+void pwd(char *path);
 
 
 int main() {
-    char* user = malloc(10000 * sizeof(char));
-    char* path = malloc(10000 * sizeof(char));
-    char* actualPath = malloc(10000 * sizeof(char));
+    char *user = malloc(10000 * sizeof(char));
+    char *path = malloc(10000 * sizeof(char));
+    char *actualPath = malloc(10000 * sizeof(char));
+    char* pathTmp = malloc(10000 * sizeof(char));
     char SIGN = '$';
-    char* command = malloc(10000 * sizeof(char));
+    char *command = malloc(10000 * sizeof(char));
 
     user = "Goora";
-    setDefaultPath(path);
+    setDefaultPath(actualPath);
 
-    while(ifCommandExit(command)==0){
-        printf("%s [%s]%c ", user, path, SIGN);
+    while (ifCommandExit(command) == 0) {
+        printf("%s [%s]%c ", user, actualPath, SIGN);
         gets(command);
-        checkAndDecide(path, actualPath, command);
+        checkAndDecide(path, actualPath, pathTmp, command);
     }
 
     free(user); //tutaj jest rzucane: Process finished with exit code -1073740940 (0xC0000374)
     free(path);
     free(command);
+    free(pathTmp);
+    free(actualPath);
 
     return 0;
 }
 
-void checkAndDecide(char* path, char* actualPath, char* command){
-    if(command[0]=='c' && command[1]=='d'){
-        cd(path, actualPath, command);
-    } else if(command[0]=='l' && command[1]=='s') {
-        ls(path);
-    } else if(command[0]=='p' && command[1]=='w' && command[2]=='d'){
+void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) {
+    if (checkCommand(command, "cd") != -1) {
+        cd(path, actualPath, pathTmp, command);
+    } else if (checkCommand(command, "ls") != -1) {
+        ls(actualPath);
+    } else if (checkCommand(command, "pwd") != -1) {
         pwd(path);
     }
 }
 
-void ls( const char* path ) {
-    struct dirent* file;
-    DIR* localPath;
-
-    if((localPath = opendir(path))) {
-        while(( file = readdir(localPath) ) )
-            puts(file->d_name);
-
-        closedir(localPath);
-    }
-    else
-        printf( "! wywołując funkcję opendir(%s) pojawił się błąd otwarcia strumienia dla danej ścieżki, może nie istnieje, "
-                "lub podano ścieżkę pustą\n", path);
-
-}
-
-void cd(char* path, char* actualPath, const char* command){
-   getcwd(actualPath, 10000);
+void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
+    int loopFlag = 0;
+    getcwd(actualPath, 10000);
 
     for (int i = 0; i < 10000; i++) {
-        path[i] = command[i+3];
+        path[i] = command[i + 3];
+        pathTmp[i] = actualPath[i];
     }
 
-    DIR * localPath = opendir(path);
+    DIR *localPath = opendir(path);
 
-    if(readdir(localPath)==NULL){
-        for (int i = 0; i < 10000; i++) {
-            path[i] = actualPath[i];
+    if (localPath != NULL) {
+        if (path[1] == ':') {
+            for (int i = 0; i < 10000; i++) {
+                actualPath[i] = path[i];
+            }
+            chdir(path);
+        } else if(path[0] == '.' && path[1] != '.'){
+
+        } else if(path[0] == '.' && path[1] == '.'){
+            for (int i = 0; i < 10000; i++) {
+                if(actualPath[1000-i-1] == '\\' && loopFlag == 0){
+                    actualPath[1000-i-1]=0;
+                    loopFlag = 1;
+                }
+            }
+            if(actualPath[1]==':' && actualPath[2]==0){
+                strcat(actualPath, "\\");
+            }
+            chdir(actualPath);
+        } else {
+            strcat(actualPath, "\\");
+            strcat(actualPath, path);
+            chdir(actualPath);
         }
+    } else {
         printf("Brak takiej scizeki\n");
     }
 }
 
-void pwd(char * path){
+void ls(const char *actualPath) {
+    struct dirent *file;
+    DIR *localPath;
+
+    if ((localPath = opendir(actualPath))) {
+        while ((file = readdir(localPath)))
+            puts(file->d_name);
+
+        closedir(localPath);
+    } else
+        printf("! wywołując funkcję opendir(%s) pojawił się błąd otwarcia strumienia dla danej ścieżki, może nie istnieje, "
+               "lub podano ścieżkę pustą\n", actualPath);
+
+}
+
+void pwd(char *path) {
     printf("%s\n", path);
 }
 
-void setDefaultPath(char* path){
+void setDefaultPath(char *path) {
     if (getcwd(path, 10000) != NULL) {
         //ok
     } else {
@@ -89,8 +120,16 @@ void setDefaultPath(char* path){
     }
 }
 
-int ifCommandExit(const char* command){
-    if(command[0]=='e' && command[1]=='x' && command[2]=='i' && command[3]=='t'){
+int checkCommand(const char *command, const char *program) {
+    for (int i = 0; program[i]; i++) {
+        if (command[i] != program[i])
+            return -1;
+    }
+    return 0;
+}
+
+int ifCommandExit(const char *command) {
+    if (command[0] == 'e' && command[1] == 'x' && command[2] == 'i' && command[3] == 't') {
         return 1;
     } else {
         return 0;
