@@ -16,9 +16,10 @@ void ls(const char *actualPath);
 
 void pwd(char *path);
 
+void clearPathTmp(char* pathTmp);
 
 int main() {
-    char *user = malloc(10000 * sizeof(char));
+    char *user = malloc(10000 * sizeof(char)); //przygotowane pod użytkownika na linuksie
     char *path = malloc(10000 * sizeof(char));
     char *actualPath = malloc(10000 * sizeof(char));
     char* pathTmp = malloc(10000 * sizeof(char));
@@ -26,7 +27,7 @@ int main() {
     char *command = malloc(10000 * sizeof(char));
 
     user = "Goora";
-    setDefaultPath(actualPath);
+    setDefaultPath(actualPath);  // ten i wiersz wyżej będą odpowiadały za ustalenie ścieżki domyślnej jako katalog użytkownika
 
     while (ifCommandExit(command) == 0) {
         printf("%s [%s]%c ", user, actualPath, SIGN);
@@ -34,7 +35,7 @@ int main() {
         checkAndDecide(path, actualPath, pathTmp, command);
     }
 
-    free(user); //tutaj jest rzucane: Process finished with exit code -1073740940 (0xC0000374)
+    free(user); //tutaj jest rzucane: Process finished with exit code -1073740940 (0xC0000374) gdy zamykam program "exitem"
     free(path);
     free(command);
     free(pathTmp);
@@ -66,12 +67,16 @@ void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
 
     if (localPath != NULL) {
         if (path[1] == ':') {
-            for (int i = 0; i < 10000; i++) {
-                actualPath[i] = path[i];
-            }
+            strncpy(actualPath, path, 10000);
             chdir(path);
         } else if(path[0] == '.' && path[1] != '.'){
-
+            if(path[1] == '\\'){
+                strncpy(pathTmp, path+1, 9999);
+                strcat(actualPath, pathTmp);
+                clearPathTmp(pathTmp);
+                chdir(actualPath);
+            }
+            chdir(actualPath);
         } else if(path[0] == '.' && path[1] == '.'){
             for (int i = 0; i < 10000; i++) {
                 if(actualPath[1000-i-1] == '\\' && loopFlag == 0){
@@ -103,8 +108,8 @@ void ls(const char *actualPath) {
 
         closedir(localPath);
     } else
-        printf("! wywołując funkcję opendir(%s) pojawił się błąd otwarcia strumienia dla danej ścieżki, może nie istnieje, "
-               "lub podano ścieżkę pustą\n", actualPath);
+        printf("! wywołujac funkcje opendir(%s) pojawil sie blad otwarcia strumienia dla danej sciezki, moze nie istnieje, "
+               "lub podano sciezkę pusta\n", actualPath);
 
 }
 
@@ -134,5 +139,9 @@ int ifCommandExit(const char *command) {
     } else {
         return 0;
     }
+}
+
+void clearPathTmp(char* pathTmp){
+    pathTmp[0] = 0;
 }
 
