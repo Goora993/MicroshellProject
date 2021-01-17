@@ -1,12 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <string.h>
+#include <pwd.h>
 
 void cd(char *path, char *actualPath, char* pathTmp, const char *command);
 
 void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command);
 
 void setDefaultPath(char *path);
+
+void setHomePath(char* actualPath);
 
 int ifCommandExit(const char *command);
 
@@ -18,24 +23,34 @@ void pwd(char *path);
 
 void clearPathTmp(char* pathTmp);
 
+
+
+int BUFFER_SIZE = 10000;
+char* HOME_PATH;
+
 int main() {
-    char *user = malloc(10000 * sizeof(char)); //przygotowane pod użytkownika na linuksie
-    char *path = malloc(10000 * sizeof(char));
-    char *actualPath = malloc(10000 * sizeof(char));
-    char* pathTmp = malloc(10000 * sizeof(char));
+
+    char *user = malloc(BUFFER_SIZE * sizeof(char));
+    char *path = malloc(BUFFER_SIZE * sizeof(char));
+    char *actualPath = malloc(BUFFER_SIZE * sizeof(char));
+    char* pathTmp = malloc(BUFFER_SIZE * sizeof(char));
     char SIGN = '$';
-    char *command = malloc(10000 * sizeof(char));
+    char *command = malloc(BUFFER_SIZE * sizeof(char));
 
-    user = "Goora";
-    setDefaultPath(actualPath);  // ten i wiersz wyżej będą odpowiadały za ustalenie ścieżki domyślnej jako katalog użytkownika
+    setHomePath(actualPath);
 
+    getlogin_r(user, sizeof(user));
+
+
+//app main loop
     while (ifCommandExit(command) == 0) {
-        printf("%s [%s]%c ", user, actualPath, SIGN);
-        gets(command);
+        printf("%s: %s%c ", user, actualPath, SIGN);
+        fgets(command, BUFFER_SIZE, stdin); //read command from stdin
+        command[strcspn(command, "\n")] = 0; //remove \n sign after line with command
         checkAndDecide(path, actualPath, pathTmp, command);
     }
 
-    free(user); //tutaj jest rzucane: Process finished with exit code -1073740940 (0xC0000374) gdy zamykam program "exitem"
+    free(user);
     free(path);
     free(command);
     free(pathTmp);
@@ -54,11 +69,28 @@ void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) 
     }
 }
 
+
+void setHomePath(char* actualPath) {
+    if((HOME_PATH = getenv("HOME")) == NULL) {
+        HOME_PATH = getpwuid(getuid())->pw_dir;
+    }
+
+    chdir(HOME_PATH);
+
+    int homePathLength = strlen(HOME_PATH);
+
+
+    for (int i = 0; i < homePathLength; ++i) {
+        actualPath[i] = HOME_PATH[i];
+    }
+}
+
+
 void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
     int loopFlag = 0;
-    getcwd(actualPath, 10000);
+    getcwd(actualPath, BUFFER_SIZE);
 
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < BUFFER_SIZE; i++) {
         path[i] = command[i + 3];
         pathTmp[i] = actualPath[i];
     }
@@ -66,30 +98,30 @@ void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
     DIR *localPath = opendir(path);
 
     if (localPath != NULL) {
-        if (path[1] == ':') {
-            strncpy(actualPath, path, 10000);
+        if (path[0] == '/') {
+            strncpy(actualPath, path, BUFFER_SIZE);
             chdir(path);
         } else if(path[0] == '.' && path[1] != '.'){
-            if(path[1] == '\\'){
-                strncpy(pathTmp, path+1, 9999);
+            if(path[1] == '/'){
+                strncpy(pathTmp, path+1, BUFFER_SIZE-1);
                 strcat(actualPath, pathTmp);
                 clearPathTmp(pathTmp);
                 chdir(actualPath);
             }
             chdir(actualPath);
         } else if(path[0] == '.' && path[1] == '.'){
-            for (int i = 0; i < 10000; i++) {
-                if(actualPath[1000-i-1] == '\\' && loopFlag == 0){
-                    actualPath[1000-i-1]=0;
+            for (int i = 0; i < BUFFER_SIZE; i++) {
+                if(actualPath[BUFFER_SIZE-i-1] == '/' && loopFlag == 0){
+                    actualPath[BUFFER_SIZE-i-1]=0;
                     loopFlag = 1;
                 }
             }
             if(actualPath[1]==':' && actualPath[2]==0){
-                strcat(actualPath, "\\");
+                strcat(actualPath, "/");
             }
             chdir(actualPath);
         } else {
-            strcat(actualPath, "\\");
+            strcat(actualPath, "/");
             strcat(actualPath, path);
             chdir(actualPath);
         }
@@ -117,13 +149,6 @@ void pwd(char *path) {
     printf("%s\n", path);
 }
 
-void setDefaultPath(char *path) {
-    if (getcwd(path, 10000) != NULL) {
-        //ok
-    } else {
-        perror("getcwd() error");
-    }
-}
 
 int checkCommand(const char *command, const char *program) {
     for (int i = 0; program[i]; i++) {
