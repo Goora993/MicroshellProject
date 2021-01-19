@@ -9,13 +9,22 @@
 #include <errno.h>
 
 int execProcess(char* command);
+
 void cd(char *path, char *actualPath, char* pathTmp, const char *command);
+
 void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command);
+
 void setHomePath(char* actualPath);
+
 int checkCommand(const char *command, const char *program);
-void ls(const char *actualPath);
+
+void ls(char *path, char *actualPath, const char *command);
+
 void pwd(char *path);
+
 void clearPathTmp(char* pathTmp);
+
+
 
 int BUFFER_SIZE = 10000;
 int LOOP_FLAG = 0;
@@ -33,6 +42,8 @@ int main(int argc, char* argv[]) {
     setHomePath(actualPath);
 
     getlogin_r(user, sizeof(user));
+
+
 
 //app main loop
     while (LOOP_FLAG == 0) {
@@ -58,7 +69,7 @@ void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) 
     if (checkCommand(command, "cd") != -1) {
         cd(path, actualPath, pathTmp, command);
     } else if (checkCommand(command, "ls") != -1) {
-        ls(actualPath);
+        ls(path, actualPath, command);
     } else if (checkCommand(command, "pwd") != -1) {
         pwd(actualPath);
     } else if (checkCommand(command, "exit") != -1) {
@@ -72,7 +83,7 @@ void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) 
 int execProcess(char* command) {
     pid_t pid = fork();
     if(pid<0){
-        perror("fork failed");
+        perror("Error: ");
         exit(1);
     }
     else if(pid==0){
@@ -100,7 +111,8 @@ int execProcess(char* command) {
         counter = 0;
 
         execvp(args[0], args);
-        printf("Error number: %d", errno);
+        perror("Error: ");
+        exit(1);
     }
     // parent
 
@@ -153,8 +165,58 @@ void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
             chdir(actualPath);
         }
     } else {
-        printf("Brak takiej scizeki\n");
+        perror("Error: ");
     }
+}
+
+
+void ls(char *path, char *actualPath, const char *command) {
+    struct dirent *file;
+    DIR *localPath;
+    int pathLength = 0;
+    int actualPathLength = 0;
+    char* tmp;
+
+
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        path[i] = command[i + 3];
+    }
+
+    pathLength = strlen(path);
+    actualPathLength = strlen(actualPath);
+
+
+    if(pathLength==0){
+        if ((localPath = opendir(actualPath))) {
+            while ((file = readdir(localPath)))
+                puts(file->d_name);
+
+            closedir(localPath);
+        } else
+            perror("Error: ");
+    } else if (path[0]=='/'){
+        if ((localPath = opendir(path))) {
+            while ((file = readdir(localPath)))
+                puts(file->d_name);
+
+            closedir(localPath);
+        } else
+            perror("Error: ");
+    } else {
+        tmp = malloc(actualPathLength + pathLength + 1);
+        strcat(tmp, actualPath);
+        strcat(tmp, "/");
+        strcat(tmp, path);
+        if ((localPath = opendir(tmp))) {
+            while ((file = readdir(localPath)))
+                puts(file->d_name);
+
+            closedir(localPath);
+        } else
+            perror("Error: ");
+        free(tmp);
+    }
+
 }
 
 void setHomePath(char* actualPath) {
@@ -167,23 +229,17 @@ void setHomePath(char* actualPath) {
     strncpy(actualPath, HOME_PATH, BUFFER_SIZE);
 }
 
-void ls(const char *actualPath) {
-    struct dirent *file;
+void pwd(char *actualPath) {
     DIR *localPath;
 
-    if ((localPath = opendir(actualPath))) {
-        while ((file = readdir(localPath)))
-            puts(file->d_name);
-
-        closedir(localPath);
-    } else
-        printf("Podano bledna sciezke: %s\n", actualPath);
-
+    actualPath = "/sadsd";
+    if(localPath = opendir(actualPath)){
+        printf("%s\n", actualPath);
+    } else {
+        perror("Error: ");
+    }
 }
 
-void pwd(char *actualPath) {
-    printf("%s\n", actualPath);
-}
 
 int checkCommand(const char *command, const char *program) {
     for (int i = 0; program[i]; i++) {
