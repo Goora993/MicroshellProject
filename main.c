@@ -18,16 +18,18 @@ void setHomePath(char* actualPath);
 
 int checkCommand(const char *command, const char *program);
 
-void ls(char *path, char *actualPath, const char *command);
-
 void pwd(char *path);
 
 void clearPathTmp(char* pathTmp);
+
+void ls(char *path, char *actualPath, const char *command);
+void touch(char* command);
 
 
 
 int BUFFER_SIZE = 10000;
 int LOOP_FLAG = 0;
+int i;
 char* HOME_PATH;
 
 int main(int argc, char* argv[]) {
@@ -45,11 +47,11 @@ int main(int argc, char* argv[]) {
 
 
 
-//app main loop
+/*app main loop*/
     while (LOOP_FLAG == 0) {
         printf("%s[%s] %c ", user, actualPath, SIGN);
-        fgets(command, BUFFER_SIZE, stdin); //read command from stdin
-        command[strcspn(command, "\n")] = 0; //remove \n sign after line with command
+        fgets(command, BUFFER_SIZE, stdin); /*read command from stdin*/
+        command[strcspn(command, "\n")] = 0; /*remove \n sign after line with command*/
         checkAndDecide(path, actualPath, pathTmp, command);
     }
 
@@ -64,7 +66,6 @@ int main(int argc, char* argv[]) {
 
 
 
-
 void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) {
     if (checkCommand(command, "cd") != -1) {
         cd(path, actualPath, pathTmp, command);
@@ -74,9 +75,42 @@ void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) 
         pwd(actualPath);
     } else if (checkCommand(command, "exit") != -1) {
         LOOP_FLAG = -1;
+    } else if (checkCommand(command, "touch") != -1) {
+        touch(command);
     } else {
         execProcess(command);
     }
+}
+
+
+void touch(char* command){
+    char* str = malloc(BUFFER_SIZE * sizeof(char));
+    strcat(str, command);
+    char delim[] = " ";
+
+    FILE * file;
+
+    char *ptr = strtok(str, delim);
+
+
+    while(ptr != NULL)
+    {
+
+        ptr = strtok(NULL, delim);
+
+        if(ptr != NULL)
+        {
+            file = fopen(ptr, "w");
+
+            if(file==NULL)
+                perror("Error: ");
+
+            fclose(file);
+        }
+
+    }
+
+    free(str);
 }
 
 
@@ -114,7 +148,7 @@ int execProcess(char* command) {
         perror("Error: ");
         exit(1);
     }
-    // parent
+
 
     wait(NULL);
     return 0;
@@ -126,7 +160,7 @@ void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
     int pathLength = 0;
     getcwd(actualPath, BUFFER_SIZE);
 
-    for (int i = 0; i < BUFFER_SIZE; i++) {
+    for (i = 0; i < BUFFER_SIZE; i++) {
         path[i] = command[i + 3];
         pathTmp[i] = actualPath[i];
     }
@@ -152,10 +186,13 @@ void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
             }
             chdir(actualPath);
         } else if(path[0] == '.' && path[1] == '.'){
-            for (int i = 0; i < BUFFER_SIZE; i++) {
+            for (i = 0; i < BUFFER_SIZE; i++) {
                 if(actualPath[BUFFER_SIZE-i-1] == '/' && loopFlag == 0){
                     actualPath[BUFFER_SIZE-i-1]=0;
                     loopFlag = 1;
+                }
+                if(actualPath[0] == 0){
+                    strcat(actualPath, "/");
                 }
             }
             chdir(actualPath);
@@ -178,7 +215,7 @@ void ls(char *path, char *actualPath, const char *command) {
     char* tmp;
 
 
-    for (int i = 0; i < BUFFER_SIZE; i++) {
+    for (i = 0; i < BUFFER_SIZE; i++) {
         path[i] = command[i + 3];
     }
 
@@ -242,7 +279,7 @@ void pwd(char *actualPath) {
 
 
 int checkCommand(const char *command, const char *program) {
-    for (int i = 0; program[i]; i++) {
+    for (i = 0; program[i]; i++) {
         if (command[i] != program[i])
             return -1;
     }
