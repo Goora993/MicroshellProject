@@ -9,19 +9,15 @@
 #include <errno.h>
 
 int execProcess(char* command);
-
-void cd(char *path, char *actualPath, char* pathTmp, const char *command);
-
-void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command);
-
-void setHomePath(char* actualPath);
-
 int checkCommand(const char *command, const char *program);
 
-void pwd(char *path);
-
+void cd(char *path, char *actualPath, char* pathTmp, const char *command);
+void help();
+void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command);
+void setHomePath(char* actualPath);
 void clearPathTmp(char* pathTmp);
 
+void pwd(char *path);
 void ls(char *path, char *actualPath, const char *command);
 void touch(char* command);
 
@@ -77,6 +73,8 @@ void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) 
         LOOP_FLAG = -1;
     } else if (checkCommand(command, "touch") != -1) {
         touch(command);
+    } else if (checkCommand(command, "help") != -1) {
+        help();
     } else {
         execProcess(command);
     }
@@ -111,6 +109,7 @@ void touch(char* command){
     }
 
     free(str);
+}
 }
 
 
@@ -172,7 +171,6 @@ void cd(char *path, char *actualPath, char* pathTmp, const char *command) {
     if(pathLength==0){
         strncpy(actualPath, HOME_PATH, BUFFER_SIZE);
         chdir(actualPath);
-        printf("Actual path: %s\n", actualPath);
     } else if (localPath != NULL) {
         if (path[0] == '/') {
             strncpy(actualPath, path, BUFFER_SIZE);
@@ -269,7 +267,6 @@ void setHomePath(char* actualPath) {
 void pwd(char *actualPath) {
     DIR *localPath;
 
-    actualPath = "/sadsd";
     if(localPath = opendir(actualPath)){
         printf("%s\n", actualPath);
     } else {
@@ -289,4 +286,34 @@ int checkCommand(const char *command, const char *program) {
 void clearPathTmp(char* pathTmp){
     pathTmp[0] = 0;
 }
+
+void help(){
+    printf("\n* Microshell - final project * \n\n"
+           "* Author: Dawid Gorkiewicz * \n"
+           "   index no. 396720\n\n"
+           "* Available functionalities *\n"
+           "  > implemented 'cd' function \n "
+           "    - similar to default cd command from Unix-like o.s.\n"
+           "    - 'cd' - moves to the home directory\n"
+           "    - 'cd .' - stays in the current directory \n"
+           "    - 'cd ..' - moves to one directory up \n"
+           "    - 'cd path' - moves from current directory to directory pointed by path  \n"
+           "    - 'cd /path' - moves to the directory pointed by absolute path \n"
+           "  > implemented 'touch' function  \n"
+           "    - 'touch file_name' - creates file in the cwd\n"
+           "    - 'touch file_name file2_name' - creates files in the cwd\n"
+           "    - 'touch path/file_name' - creates file in the directory pointed by path \n"
+           "    - 'touch path/file_name path/file2_name' - creates files in the directories pointed by paths \n"
+           "    - impossible to create files with space inside the name \n"
+           "  > implemented 'pwd' function \n"
+           "    - 'pwd' - prints current working directory path\n"
+           "  > implemented 'ls' function \n"
+           "    - 'ls' - lists files in current working directory  \n"
+           "    - 'ls path' - lists files in the directory pointed by path  \n"
+           "  > implemented 'execProcess' function \n"
+           "    - allows to use scripts and programs stored in PATH \n"
+           "\n");
+
+}
+
 
