@@ -8,6 +8,11 @@
 #include <sys/wait.h>
 #include <errno.h>
 
+#define CYAN_COLOR    "\x1b[36m"
+#define YELLOW_COLOR    "\x1b[33m"
+#define RESET_COLOR   "\x1b[0m"
+
+
 int execProcess(char* command);
 int checkCommand(const char *command, const char *program);
 
@@ -22,11 +27,11 @@ void ls(char *path, char *actualPath, const char *command);
 void touch(char* command);
 
 
-
 int BUFFER_SIZE = 10000;
 int LOOP_FLAG = 0;
 int i;
 char* HOME_PATH;
+
 
 int main(int argc, char* argv[]) {
 
@@ -41,11 +46,11 @@ int main(int argc, char* argv[]) {
 
     getlogin_r(user, sizeof(user));
 
-
-
 /*app main loop*/
     while (LOOP_FLAG == 0) {
-        printf("%s[%s] %c ", user, actualPath, SIGN);
+        printf(YELLOW_COLOR "%s" RESET_COLOR, user );
+        printf(CYAN_COLOR "[%s] " RESET_COLOR, actualPath );
+        printf(YELLOW_COLOR "%c " RESET_COLOR ,SIGN );
         fgets(command, BUFFER_SIZE, stdin); /*read command from stdin*/
         command[strcspn(command, "\n")] = 0; /*remove \n sign after line with command*/
         checkAndDecide(path, actualPath, pathTmp, command);
@@ -81,36 +86,6 @@ void checkAndDecide(char *path, char *actualPath, char* pathTmp, char *command) 
 }
 
 
-void touch(char* command){
-    char* str = malloc(BUFFER_SIZE * sizeof(char));
-    strcat(str, command);
-    char delim[] = " ";
-
-    FILE * file;
-
-    char *ptr = strtok(str, delim);
-
-
-    while(ptr != NULL)
-    {
-
-        ptr = strtok(NULL, delim);
-
-        if(ptr != NULL)
-        {
-            file = fopen(ptr, "w");
-
-            if(file==NULL)
-                perror("Error: ");
-
-            fclose(file);
-        }
-
-    }
-
-    free(str);
-}
-}
 
 
 int execProcess(char* command) {
@@ -122,7 +97,6 @@ int execProcess(char* command) {
     else if(pid==0){
         char d[4] = " ";
         int counter = 0;
-
 
         command[strcspn(command, "\n")] = 0;
 
@@ -251,8 +225,35 @@ void ls(char *path, char *actualPath, const char *command) {
             perror("Error: ");
         free(tmp);
     }
-
 }
+
+void touch(char* command){
+    char* str = malloc(BUFFER_SIZE * sizeof(char));
+    strcat(str, command);
+    char delim[] = " ";
+
+    FILE * file;
+
+    char *ptr = strtok(str, delim);
+
+    while(ptr != NULL)
+    {
+        ptr = strtok(NULL, delim);
+
+        if(ptr != NULL)
+        {
+            file = fopen(ptr, "w");
+
+            if(file==NULL)
+                perror("Error: ");
+
+            fclose(file);
+        }
+    }
+
+    free(str);
+}
+
 
 void setHomePath(char* actualPath) {
     if((HOME_PATH = getenv("HOME")) == NULL) {
@@ -263,6 +264,7 @@ void setHomePath(char* actualPath) {
 
     strncpy(actualPath, HOME_PATH, BUFFER_SIZE);
 }
+
 
 void pwd(char *actualPath) {
     DIR *localPath;
@@ -283,9 +285,11 @@ int checkCommand(const char *command, const char *program) {
     return 0;
 }
 
+
 void clearPathTmp(char* pathTmp){
     pathTmp[0] = 0;
 }
+
 
 void help(){
     printf("\n* Microshell - final project * \n\n"
@@ -313,7 +317,6 @@ void help(){
            "  > implemented 'execProcess' function \n"
            "    - allows to use scripts and programs stored in PATH \n"
            "\n");
-
 }
 
 
